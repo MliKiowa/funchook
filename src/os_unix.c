@@ -477,7 +477,6 @@ void *funchook_resolve_func(funchook_t *funchook, void *func)
             return func;
         }
     }
-
     funchook_log(funchook, "  symtab=%p, strtab=%p, strtab_size=%zu, symtab_cnt=%zu\n",
                 symtab, strtab, strtab_size, symtab_cnt);
 
