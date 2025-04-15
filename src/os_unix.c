@@ -409,7 +409,6 @@ void *funchook_resolve_func(funchook_t *funchook, void *func)
     const ElfW(Sym) *symtab_end = NULL;
     const char *strtab = NULL;
     size_t strtab_size = 0;
-    size_t symtab_cnt = 0;
     int i;
 
     lmap = NULL;
@@ -439,12 +438,6 @@ void *funchook_resolve_func(funchook_t *funchook, void *func)
     funchook_log(funchook, "  link_map addr=%p, name=%s\n", (void*)lmap->l_addr, lmap->l_name);
     dyn = lmap->l_ld;
 
-    // 确保dyn是有效的
-    if (dyn == NULL) {
-        funchook_log(funchook, "  invalid dynamic section.\n");
-        return func;
-    }
-
     for (i = 0; dyn[i].d_tag != DT_NULL; i++) {
         switch (dyn[i].d_tag) {
         case DT_SYMTAB:
@@ -456,39 +449,11 @@ void *funchook_resolve_func(funchook_t *funchook, void *func)
         case DT_STRSZ:
             strtab_size = dyn[i].d_un.d_val;
             break;
-        case DT_HASH:
-            if (dyn[i].d_un.d_ptr != 0) {
-                uint32_t *hash = (uint32_t *)dyn[i].d_un.d_ptr;
-                symtab_cnt = hash[1];
-            }
-            break;
         }
     }
-    if (symtab == NULL || strtab == NULL || strtab_size == 0) {
-        funchook_log(funchook, "  cannot find required dynamic section entries.\n");
-        return func;
-    }
-    if (symtab_cnt > 0) {
-        symtab_end = symtab + symtab_cnt;
-    } else {
-        symtab_end = (const ElfW(Sym) *)strtab;
-        if (symtab_end <= symtab) {
-            funchook_log(funchook, "  invalid symbol table bounds.\n");
-            return func;
-        }
-    }
-
-    funchook_log(funchook, "  symtab=%p, strtab=%p, strtab_size=%zu, symtab_cnt=%zu\n",
-                symtab, strtab, strtab_size, symtab_cnt);
-
+    symtab_end = (const ElfW(Sym) *)strtab;
     while (symtab < symtab_end) {
-        if ((void*)symtab >= (void*)strtab) {
-            funchook_log(funchook, "  reached end of symbol table.\n");
-            break;
-        }
         if (symtab->st_name >= strtab_size) {
-            funchook_log(funchook, "  invalid symbol name index: %u >= %zu\n", 
-                        symtab->st_name, strtab_size);
             break;
         }
         if (ELF64_ST_TYPE(symtab->st_info) == STT_FUNC &&
