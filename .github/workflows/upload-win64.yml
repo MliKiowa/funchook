@@ -28,3 +28,4 @@ jobs:
           name: FuncHook.win32.x64
           path: |
             dependencies/build/install/
+            dependencies/build/Release/
