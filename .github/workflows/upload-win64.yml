@@ -1,0 +1,30 @@
+name: Build FuncHook
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - '*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build FuncHook
+        run: |
+          mkdir dependencies
+          cd dependencies
+          git clone --recursive https://github.com/kubo/funchook.git
+          mkdir build
+          cd build
+          cmake -DCMAKE_INSTALL_PREFIX=install ..\funchook
+          cmake --build . --config Release --target INSTALL
+
+      - name: Upload FuncHook Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FuncHook.win32.x64
+          path: |
+            dependencies/build/install/
